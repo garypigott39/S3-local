@@ -1,0 +1,36 @@
+Minio path redirecting
+
+- https://www.cyberciti.biz/faq/how-to-list-all-iptables-rules-in-linux/
+
+- https://linuxconfig.org/simple-way-to-remove-iptables-rules-on-linux-command-line/
+
+
+```
+  cmd: sudo iptables -L DOCKER --line-numbers
+Chain DOCKER (3 references)
+num  target     prot opt source               destination         
+1    ACCEPT     tcp  --  anywhere             172.25.0.2           tcp dpt:http-alt
+2    ACCEPT     tcp  --  anywhere             172.25.0.2           tcp dpt:https
+3    ACCEPT     tcp  --  anywhere             172.25.0.2           tcp dpt:http
+4    ACCEPT     tcp  --  anywhere             172.18.0.3           tcp dpt:3001
+5    ACCEPT     tcp  --  anywhere             172.18.0.3           tcp dpt:3000
+6    ACCEPT     tcp  --  anywhere             172.18.0.4           tcp dpt:9099
+7    ACCEPT     tcp  --  anywhere             172.18.0.5           tcp dpt:1025
+8    ACCEPT     tcp  --  anywhere             172.25.0.3           tcp dpt:https
+9    ACCEPT     tcp  --  anywhere             172.18.0.5           tcp dpt:http
+10   ACCEPT     tcp  --  anywhere             172.25.0.3           tcp dpt:http
+11   ACCEPT     tcp  --  anywhere             172.18.0.6           tcp dpt:8983
+12   ACCEPT     tcp  --  anywhere             172.18.0.7           tcp dpt:6379
+13   ACCEPT     tcp  --  anywhere             172.18.0.8           tcp dpt:mysql
+14   ACCEPT     tcp  --  anywhere             172.18.0.11          tcp dpt:9200
+```
+
+
+sudo iptables -S DOCKER
+
+sudo iptables -D DOCKER <line no>
+
+
+Version of docker "Docker version 19.03.6, build 369ce74a3c"
+
+** Interestingly these settings are identical on my other laptop where this is actually working **

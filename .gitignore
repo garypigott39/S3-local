@@ -1,0 +1,5 @@
+# S3 persistent data
+data
+
+# Ignore phpStorm IDEA
+.idea
