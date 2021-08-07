@@ -13,15 +13,17 @@
 #
 # Called as:
 #
-#    s3Local.sh [start/stop/url/status/credentials]  -- default value: start
+#    s3Local.sh [start/stop/url/status/credentials]  -- default value: help
 #
 # @see https://docs.min.io/docs/minio-docker-quickstart-guide.html
+#
+# @TODO stop = just stop, kill, restart
 #---------------------------------------------------------------------------------------
 
 NAME=s3.local
 DATA=/var/www/html/TES/s3.local/data
 MINIO_ROOT_USER="admin"
-MINIO_ROOT_PASSWORD="admin"
+MINIO_ROOT_PASSWORD="minio.admin"
 
 #---------------------------------------------------------------------------------------
 
@@ -35,19 +37,25 @@ function fatal() {
 #---------------------------------------------------------------------------------------
 
 function getIds() {
-  ids=`docker ps -a 2> /dev/null | awk -vname=${NAME} '$NF == name {print $1}'`
+  ids=`docker ps -a -f name=${NAME} | grep ${NAME} 2> /dev/null | awk '{print $1}'`
   echo $ids
 }
 
 #---------------------------------------------------------------------------------------
 
 function getStatus() {
-  ids=`getIds`
-  if [[ ! "$ids" ]]
+  status=`docker ps -a -f name=${NAME} | grep ${NAME} 2> /dev/null | awk '{print $7}'`
+  if [[ ! "$status" ]]
   then
-    echo "Not running"
-  else
+    echo "Not running/No container"
+  elif [[ "$status" == "Up" ]]
+  then
     echo "Running"
+  elif [[ "$status" == "Exited" ]]
+  then
+    echo "Stopped"
+  else
+    echo "Unknown"
   fi
 }
 
@@ -66,8 +74,9 @@ function showCredentials() {
 
 function showHelp() {
   echo
-  echo "Call as:"
-  echo "  s3Local.sh [start/stop/url/status/credentials/help]  -- default value: start"
+  echo "Start MINIO standalone instance in Docker. Called as:"
+  echo
+  echo "  s3Local.sh [start/stop/url/status/credentials/help]  -- default value: help"
   echo
 }
 
@@ -89,8 +98,19 @@ function showUrl() {
 
 #---------------------------------------------------------------------------------------
 
+function restartContainers() {
+  ids=`getIds`
+  if [[ "$ids" ]]
+  then
+    echo "##### Restarting containers"
+    docker container restart ${ids}
+  fi
+}
+
+#---------------------------------------------------------------------------------------
+
 function startContainers() {
-  docker run \
+  docker container run \
     -d \
     -p 9090:9090 \
     -p 9091:9091 \
@@ -109,25 +129,19 @@ function startContainers() {
 #---------------------------------------------------------------------------------------
 
 function stopContainers() {
-  status=`getStatus`
-  if [[ "$status" != "Running" ]]
+  ids=`getIds`
+  if [[ "$ids" ]]
   then
-    fatal "Containers are not running"
-  else
     echo "##### Stopping containers"
-    ids=`getIds`
-    if [[ "$ids" ]]
-    then
-      docker stop ${ids}
-      docker rm ${ids}
-    fi
+    docker container stop ${ids}
+    docker container rm ${ids}
   fi
 }
 
 #---------------------------------------------------------------------------------------
 
 # What action?
-action="${1:-start}"
+action="${1:-help}"
 if [[ "$action" == "help" ]]
 then
   showHelp
@@ -149,8 +163,16 @@ then
 elif [[ `getStatus` == "Running" ]]
 then
   showUrl
+elif [[ `getStatus` == "Stopped" ]]
+then
+  restartContainers
+  sleep 2
+  showCredentials
 else
+  # Always stop/remove any container first
+  stopContainers > /dev/null 2>&1
+  #
   startContainers
-  sleep 1
+  sleep 2
   showCredentials
 fi
