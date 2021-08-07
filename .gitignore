@@ -1,5 +1,7 @@
 # S3 persistent data
-data
+data/.minio.sys/
+data/files
+data/private
 
 # Ignore phpStorm IDEA
 .idea
