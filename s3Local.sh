@@ -17,11 +17,20 @@
 #
 # @see https://docs.min.io/docs/minio-docker-quickstart-guide.html
 #
-# @TODO stop = just stop, kill, restart
+# Note, add entry to /etc/hosts
+#
+# @TODO. stop = just stop, kill, restart
+# @TODO. alias dps="docker ps -q | xargs docker inspect --format '{{ .Id }} - {{ .Name }} - {{ .NetworkSettings.IPAddress }}'"
+# @see https://github.com/moby/moby/issues/8786
 #---------------------------------------------------------------------------------------
 
 NAME=s3.local
-DATA=/var/www/html/TES/s3.local/data
+BASE=/var/www/html/TES/s3.local
+DATA=${BASE}/data
+#CERTS=${BASE}  # creates a "certs" folder if it doesnt already exist
+API_PORT=9090
+CONSOLE_PORT=9091
+
 MINIO_ROOT_USER="admin"
 MINIO_ROOT_PASSWORD="minio.admin"
 
@@ -66,8 +75,8 @@ function showCredentials() {
   echo "Status: `getStatus`"
   echo
   echo "Credentials: ${MINIO_ROOT_USER}/${MINIO_ROOT_PASSWORD}"
-  echo "URL: http://${NAME}:9091"
-  echo
+  #
+  showUrl
 }
 
 #---------------------------------------------------------------------------------------
@@ -92,7 +101,8 @@ function showStatus() {
 
 function showUrl() {
   echo
-  echo "http://${NAME}:9091  (`getStatus`)"
+  echo "API - http://${NAME}:${API_PORT}"
+  echo "Console - http://${NAME}:${CONSOLE_PORT}  (`getStatus`)"
   echo
 }
 
@@ -110,16 +120,17 @@ function restartContainers() {
 #---------------------------------------------------------------------------------------
 
 function startContainers() {
+#    --add-host ${NAME}:127.0.0.1 \
+#    -v ${CERTS}:/root/.minio \
   docker container run \
     -d \
-    -p 9090:9090 \
-    -p 9091:9091 \
-    --add-host ${NAME}:127.0.0.1 \
+    -p ${API_PORT}:${API_PORT} \
+    -p ${CONSOLE_PORT}:${CONSOLE_PORT} \
     --name ${NAME} \
     -v ${DATA}:/data \
     -e "MINIO_ROOT_USER=${MINIO_ROOT_USER}" \
     -e "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" \
-    minio/minio server /data --console-address ":9091"
+    minio/minio server /data --console-address ":${CONSOLE_PORT}"
   if [[ $? -ne 0 ]]
   then
     fatal "Unable to start containers"
